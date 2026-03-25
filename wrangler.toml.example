@@ -1,0 +1,8 @@
+name = "operon-diff-worker"
+main = "src/index.ts"
+compatibility_date = "2025-03-25"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "DIFFS"
+id = "<YOUR_KV_NAMESPACE_ID>"

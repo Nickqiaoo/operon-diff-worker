@@ -1,5 +1,7 @@
 # Operon Diff Worker
 
+> Share beautiful code diffs via a single link.
+
 A Cloudflare Worker that stores and renders code diffs as beautiful web pages. Used by [Operon](https://github.com/nickqiaoo/operon) to share diff previews via links.
 
 ## Features
@@ -7,12 +9,14 @@ A Cloudflare Worker that stores and renders code diffs as beautiful web pages. U
 - Store unified diffs via API with Bearer token auth
 - Server-side render diffs using [@pierre/diffs](https://www.npmjs.com/package/@pierre/diffs) with syntax highlighting
 - HMAC-signed URLs with configurable TTL (default 1 hour)
-- Dark/light mode support, Telegram WebApp compatible
+- Automatically follows the current dark/light theme
 - Zero database required - uses Cloudflare KV for storage
+- Lightweight and fast - cold start under 5ms on Cloudflare edge
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) >= 18
+- [pnpm](https://pnpm.io/) >= 8 (recommended package manager)
 - A [Cloudflare](https://dash.cloudflare.com/) account (free plan works)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (included as dev dependency)
 
@@ -23,7 +27,7 @@ A Cloudflare Worker that stores and renders code diffs as beautiful web pages. U
 ```bash
 git clone https://github.com/Nickqiaoo/operon-diff-worker.git
 cd operon-diff-worker
-npm install
+pnpm install
 ```
 
 ### 2. Create a KV namespace
@@ -59,7 +63,7 @@ Enter a strong random string when prompted. This key is used for both API authen
 ### 5. Deploy
 
 ```bash
-npm run deploy
+pnpm run deploy
 ```
 
 Done. Your worker is now live at `https://operon-diff-worker.<your-subdomain>.workers.dev`.
@@ -102,10 +106,18 @@ Returns a fully rendered HTML page with the diff.
 ## Local Development
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 This starts a local dev server with `wrangler dev`.
+
+## Tech Stack
+
+- **Runtime**: Cloudflare Workers (V8 isolates)
+- **Storage**: Cloudflare KV
+- **Diff Rendering**: [@pierre/diffs](https://www.npmjs.com/package/@pierre/diffs)
+- **Syntax Highlighting**: [Shiki](https://shiki.matsu.io/)
+- **Framework**: [Hono](https://hono.dev/)
 
 ## License
 

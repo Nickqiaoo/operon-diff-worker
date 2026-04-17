@@ -73,12 +73,14 @@ app.get('/diff', async (c) => {
 
   const raw = await c.env.DIFFS.get(`diff:${id}`, { type: 'text' })
   if (!raw) {
+    c.header('Cache-Control', 'private, no-store')
     return c.html(renderExpiredPage())
   }
 
   const data: DiffData = JSON.parse(raw)
 
-  // SSR render the patch using @pierre/diffs
+  c.header('Cache-Control', 'private, no-store')
+
   let diffHtml: string
   try {
     const result = await preloadPatchDiff({
@@ -88,7 +90,9 @@ app.get('/diff', async (c) => {
         diffIndicators: 'bars',
         lineDiffType: 'none',
         overflow: 'wrap',
-        themeType: 'dark',
+        themeType: 'system',
+        disableFileHeader: true,
+        disableBackground: true,
         theme: {
           light: 'pierre-light',
           dark: 'pierre-dark',
@@ -98,7 +102,6 @@ app.get('/diff', async (c) => {
     diffHtml = result.prerenderedHTML
   } catch (err) {
     console.error('[DiffViewer] SSR render failed:', err)
-    // Fallback: show raw patch as preformatted text
     diffHtml = `<pre style="padding:12px;font-size:13px;overflow-x:auto">${escapeHtml(data.patch)}</pre>`
   }
 
@@ -118,12 +121,13 @@ function renderViewerPage(data: DiffData & { html: string }): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="color-scheme" content="light dark">
   <title>Diff: ${escapeHtml(fileName)}</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
+      color-scheme: light dark;
       --bg: #f5f5f5;
       --bg-card: #ffffff;
       --text: #1a1a1a;
@@ -144,16 +148,6 @@ function renderViewerPage(data: DiffData & { html: string }): string {
         --add-color: #4ade80;
         --del-color: #f87171;
       }
-    }
-
-    body.tg-dark {
-      --bg: #0a0a0a;
-      --bg-card: #141414;
-      --text: #e5e5e5;
-      --text-secondary: #737373;
-      --border: rgba(255,255,255,0.06);
-      --add-color: #4ade80;
-      --del-color: #f87171;
     }
 
     body {
@@ -212,20 +206,12 @@ function renderViewerPage(data: DiffData & { html: string }): string {
     .diff-content {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-    }
-
-    /* Match app's pierre-diff-file-view styling */
-    .pierre-diff-file-view {
       font-size: 13px;
+      background: transparent;
     }
 
-    .pierre-diff-file-view [class*="diff-view"] {
-      border: none !important;
-      border-radius: 0 !important;
-    }
-
-    .pierre-diff-file-view [class*="line-number"] {
-      opacity: 0.4;
+    .diff-content [class*="line-number"] {
+      opacity: 0.45;
       font-size: 11px;
     }
   </style>
@@ -240,23 +226,8 @@ function renderViewerPage(data: DiffData & { html: string }): string {
       <span class="file-name">${escapeHtml(fileName)}</span>
       <span class="diff-stats">${statsHtml}</span>
     </div>
-    <div class="diff-content pierre-diff-file-view">
-      ${html}
-    </div>
+    <div class="diff-content">${html}</div>
   </div>
-  <script>
-    (function() {
-      var tg = window.Telegram && window.Telegram.WebApp;
-      if (tg) {
-        tg.ready();
-        tg.expand();
-        if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-        if (tg.colorScheme === 'dark') {
-          document.body.classList.add('tg-dark');
-        }
-      }
-    })();
-  </script>
 </body>
 </html>`
 }
@@ -267,23 +238,24 @@ function renderExpiredPage(): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>Diff Expired</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root { --bg: #f5f5f5; --bg-card: #ffffff; --text: #1a1a1a; --text-secondary: #6b7280; --border: rgba(0,0,0,0.06); }
+    :root { color-scheme: light dark; --bg: #f5f5f5; --bg-card: #ffffff; --text: #1a1a1a; --text-secondary: #6b7280; --border: rgba(0,0,0,0.06); }
     @media (prefers-color-scheme: dark) {
       :root { --bg: #0a0a0a; --bg-card: #141414; --text: #e5e5e5; --text-secondary: #737373; --border: rgba(255,255,255,0.06); }
     }
-    body.tg-dark { --bg: #0a0a0a; --bg-card: #141414; --text: #e5e5e5; --text-secondary: #737373; --border: rgba(255,255,255,0.06); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg); color: var(--text-secondary);
       display: flex; align-items: center; justify-content: center;
       min-height: 100vh; padding: 24px;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
     .card {
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 12px; padding: 32px; text-align: center; max-width: 320px;
+      transition: background-color 0.25s ease, border-color 0.25s ease;
     }
     h2 { font-size: 16px; margin-bottom: 6px; color: var(--text); font-weight: 500; }
     p { font-size: 13px; }
@@ -294,13 +266,6 @@ function renderExpiredPage(): string {
     <h2>Diff Expired</h2>
     <p>This diff preview has expired (1 hour TTL).</p>
   </div>
-  <script>
-    var tg = window.Telegram && window.Telegram.WebApp;
-    if (tg) {
-      tg.ready(); tg.expand();
-      if (tg.colorScheme === 'dark') document.body.classList.add('tg-dark');
-    }
-  </script>
 </body>
 </html>`
 }
